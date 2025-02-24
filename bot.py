@@ -1,30 +1,42 @@
-import telebot
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
 import os
-import requests
 
-# دریافت توکن از متغیر محیطی
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-bot = telebot.TeleBot(TOKEN)
+# 🟢 تنظیمات کروم برای Headless اجرا روی Railway
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_argument("--headless")  # بدون UI
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--disable-gpu")
+chrome_options.add_argument("--window-size=1920x1080")
 
-# آدرس سرور Selenium (این سرور باید `selenium_script.py` را اجرا کند)
-SELENIUM_SERVER_URL = os.getenv("SELENIUM_SERVER_URL")
+# 🟢 اجرای WebDriver
+service = Service("/usr/bin/chromedriver")  # مسیر اجرا روی Railway
+driver = webdriver.Chrome(service=service, options=chrome_options)
 
-@bot.message_handler(commands=['start'])
-def start(message):
-    bot.send_message(message.chat.id, "✅ بات اجرا شد! مختصات GPS خود را ارسال کنید.")
+# باز کردن سایت
+driver.get("https://cadastre.mimt.gov.ir/Map/Map.aspx?PNid=0")
+print("✅ سایت باز شد.")
 
-@bot.message_handler(func=lambda message: True)
-def handle_message(message):
-    gps_data = message.text
-    bot.send_message(message.chat.id, f"📡 دریافت شد: {gps_data}\n⏳ در حال پردازش...")
+# 🟢 کلیک روی دکمه جستجو
+try:
+    search_button = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, "//a[contains(@href, '#Div_InsertPoint')]"))
+    )
+    search_button.click()
+    print("✅ دکمه جستجو کلیک شد.")
+except:
+    print("❌ دکمه جستجو پیدا نشد!")
 
-    # ارسال داده به سرور Selenium
-    response = requests.post(f"{SELENIUM_SERVER_URL}/process", json={"gps": gps_data})
+# 🟢 گرفتن اسکرین‌شات
+time.sleep(5)
+screenshot_path = "map_screenshot.png"
+driver.save_screenshot(screenshot_path)
+print(f"📸 اسکرین‌شات ذخیره شد در: {screenshot_path}")
 
-    if response.status_code == 200:
-        screenshot_url = response.json().get("screenshot_url")
-        bot.send_photo(message.chat.id, screenshot_url, caption="📷 این هم تصویر نقشه!")
-    else:
-        bot.send_message(message.chat.id, "❌ خطا در پردازش داده!")
-
-bot.polling()
+# بستن مرورگر
+driver.quit()

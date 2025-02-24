@@ -3,7 +3,7 @@ import os
 import requests
 
 # دریافت توکن از متغیر محیطی
-TOKEN = os.getenv("7560531703:AAHhaAtq5UNATkKKKGxDcH9Hb1T1TDDUY24")
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
 # آدرس سرور Selenium (این سرور باید `selenium_script.py` را اجرا کند)
